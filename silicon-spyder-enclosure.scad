@@ -1,12 +1,19 @@
 // ============================================================================
 // Silicon Spyder — Secure WiFi Box Enclosure
-// Parametric 3-part case, one part per physical layer:
-//   BASE    (bottom)  — everything except the fans and the router: Pi4,
-//                       SIM7600G-H HAT, Alfa/MT7921 monitor adapter.
-//   CHAMBER (middle)  — the 2x cooling fans.
-//   TOP     (top)     — the TP-Link router, in a single liftable piece
-//                       (cradle walls + vented lid combined, so there's one
-//                       part to lift off, not two).
+// Parametric case, split by physical layer:
+//   BASE       (bottom)  — everything except the fans and the router: Pi4,
+//                          SIM7600G-H HAT, Alfa/MT7921 monitor adapter.
+//   CHAMBER    (middle)  — the 2x cooling fans.
+//   TOP_FIXED  (top)     — the router's cradle walls + the front ~70% of its
+//                          lid. Screwed down through all 4 corner posts;
+//                          not meant to come off routinely.
+//   TOP_HATCH  (top)     — a separate drop-in panel over the router's REAR
+//                          ~30%, where its antennas AND its port cluster
+//                          (WAN/LAN/power) actually are. Rests loose on top
+//                          of the cradle walls (no screws) — lift it off by
+//                          hand any time you need to plug/unplug the router
+//                          or route a cable down the rear cable chase to the
+//                          base, without touching the rest of the case.
 // Non-metal only — this is meant to be 3D-printed (PETG or ABS recommended
 // over PLA for the heat near the router/fans). Metal blocks WiFi.
 //
@@ -17,7 +24,7 @@
 // Units: mm throughout.
 // ============================================================================
 
-part = "all"; // "base" | "chamber" | "top" | "all" (all = assembly preview only, do not print "all")
+part = "all"; // "base" | "chamber" | "top_fixed" | "top_hatch" | "all" (all = assembly preview only, do not print "all")
 
 /* [Router — TP-Link Archer AX21 (AX1800)] */
 router_w = 261;   // long axis
@@ -124,6 +131,17 @@ antenna_xs = [
 // y where the router's rear edge (and so its antennas) sits, assuming the
 // router is loaded with its antenna edge toward the footprint_d-max side
 antenna_row_y = side_void + router_d;
+
+/* [Rear access hatch — TOP_HATCH] */
+// How far the hatch reaches forward past the router's rear edge, so it
+// actually exposes the port row (WAN/LAN/power), not just empty void.
+// Default 30mm: covers the full 22.5mm rear void plus ~30mm into the
+// router's body — nudge this once you've measured how deep the AX21's
+// port cluster sits from its rear face.
+hatch_router_overlap = 30;
+hatch_y_start = antenna_row_y - hatch_router_overlap;
+hatch_depth   = footprint_d - hatch_y_start;
+hatch_t       = 3;  // hatch thickness — rests on top of the cradle walls, flush with the fixed lid
 
 $fn = 48;
 
@@ -269,63 +287,91 @@ module chamber_fan_cuts() {
 }
 
 // ============================================================================
-// TOP — the TP-Link router, as one liftable piece (cradle walls + vented lid
-// combined). Drops down over the router from above (open bottom, so it slides
-// over the router sitting on the chamber below); lifts straight back off the
-// same way. Cradle walls hug the router's long sides; open floor lets the
-// chamber's fan airflow reach the router's underside; front/back voids are
-// the cable chase + carry-handle cutouts. The lid vents (heat escapes
-// upward) and has the 4 rear-opening antenna slots described above.
-//
-// REMOVAL: because the AX21's antennas are fixed and don't fold flat, lift
-// this piece up and slide it slightly toward the antenna edge (footprint_d
-// max) as you go, so the open ends of the antenna slots clear the antenna
-// bases. No unscrewing required.
+// TOP_FIXED — cradle walls (full depth) + the front lid, covering the router
+// from y=0 to hatch_y_start. Screwed down through all 4 corner posts, same
+// as base/chamber; this is the part that stays put. Drops down over the
+// router from above (open bottom, so it slides over the router sitting on
+// the chamber below, and the router's underside stays open to the chamber's
+// airflow). The rear (hatch_y_start to footprint_d) is deliberately left
+// open on top here — TOP_HATCH covers it separately.
 // ============================================================================
-module top() {
+module top_fixed() {
   handle_w = 70;
   handle_h = 14;
 
   difference() {
     union() {
-      // cradle walls on the router's long sides
+      // cradle walls on the router's long sides — full depth, so the hatch
+      // has continuous wall-top to rest on all the way to the rear edge
       translate([0, 0, 0]) cube([cradle_wall, footprint_d, top_wall_h]);
       translate([footprint_w - cradle_wall, 0, 0]) cube([cradle_wall, footprint_d, top_wall_h]);
 
-      // thin front/back lips — just enough to carry the corner posts and
-      // close the gap, leaving most of each void open for cables + hands
+      // thin front lip — closes the front void mostly, minus its handle cutout
       translate([0, 0, 0]) cube([footprint_w, wall_t, top_wall_h]);
-      translate([0, footprint_d - wall_t, 0]) cube([footprint_w, wall_t, top_wall_h]);
 
       all_corner_posts(top_h);
 
-      // lid, on top of the cradle walls
-      translate([0, 0, top_wall_h]) cube([footprint_w, footprint_d, top_lid_t]);
+      // front lid only — from the front edge to where the hatch takes over
+      translate([0, 0, top_wall_h]) cube([footprint_w, hatch_y_start, top_lid_t]);
     }
 
-    // carry-handle cutouts, centered in each void, through the thin lip
+    // carry-handle cutout in the front void (the only load-bearing carry
+    // point up here — the rear hatch rests loose, don't lift the box by it)
     translate([footprint_w/2 - handle_w/2, -1, top_wall_h/2 - handle_h/2])
       cube([handle_w, side_void + wall_t + 2, handle_h]);
-    translate([footprint_w/2 - handle_w/2, footprint_d - side_void - wall_t - 1, top_wall_h/2 - handle_h/2])
-      cube([handle_w, side_void + wall_t + 2, handle_h]);
 
-    // lid vent slots, two rows over the router body (kept clear of the
-    // antenna slot zone near the rear edge)
+    // front lid vents, two rows over the router body
     for (yfrac = [0.28, 0.55])
       translate([0, footprint_d * yfrac - vent_w/2, top_wall_h - 0.5])
         for (i = [0:14])
           translate([footprint_w*0.08 + i*(footprint_w*0.84/15), 0, 0])
             cube([footprint_w*0.84/15*0.5, vent_w, top_lid_t + 1]);
 
-    // antenna slots — closed a few mm short of the router's rear edge, open
-    // all the way through to the lid's rear edge
-    for (ax = antenna_xs)
-      translate([ax - antenna_slot_w/2, antenna_row_y - 4, top_wall_h - 0.5])
-        cube([antenna_slot_w, footprint_d - (antenna_row_y - 4), top_lid_t + 1]);
-
-    // corner screw holes through the lid
+    // corner screw holes (front 2 posts go through the lid; rear 2 posts
+    // are already open-topped since the lid doesn't reach back that far)
     for (p = corner_positions())
       translate([p[0], p[1], top_wall_h - 0.5]) cylinder(d = screw_d, h = top_lid_t + 1);
+  }
+}
+
+// ============================================================================
+// TOP_HATCH — the detachable rear access panel. Rests loose on top of
+// top_fixed's cradle walls (z = top_wall_h to top_wall_h+hatch_t, flush with
+// the front lid's top surface) spanning the rear hatch_depth zone — no
+// screws, just lift it off by hand. This is where the router's antennas
+// AND its port cluster (WAN/LAN/power) actually are, and where cables drop
+// down the rear cable chase to the base.
+//
+// REMOVAL: the AX21's antennas are fixed and don't fold flat, so a plain
+// closed hole would mean unscrewing antennas just to lift this off. Instead
+// each antenna gets a slot closed near the router body but open straight
+// through the hatch's rear edge — lift up and slide slightly toward the
+// rear as you go, and the antennas slide out the open ends untouched.
+// Corner-post clearance notches let it drop in around the rear 2 posts.
+// ============================================================================
+module top_hatch() {
+  difference() {
+    // spans between the cradle walls (rests on their top faces) and the
+    // full hatch_depth back to the rear edge
+    translate([cradle_wall, hatch_y_start, 0])
+      cube([footprint_w - 2*cradle_wall, hatch_depth, hatch_t]);
+
+    // clearance notches for the rear 2 corner posts, which poke up through
+    // this zone regardless (they belong to top_fixed, not this piece)
+    for (p = [corner_positions()[2], corner_positions()[3]])
+      translate([p[0], p[1], -0.5]) cylinder(d = post_d + 1, h = hatch_t + 1);
+
+    // vent slots — light venting near the front (router-body) edge of the hatch
+    translate([0, hatch_y_start + 6, -0.5])
+      for (i = [0:10])
+        translate([footprint_w*0.10 + i*(footprint_w*0.80/11), 0, 0])
+          cube([footprint_w*0.80/11*0.5, vent_w, hatch_t + 1]);
+
+    // antenna slots — closed a few mm short of the router's rear edge, open
+    // all the way through to the hatch's (and enclosure's) rear edge
+    for (ax = antenna_xs)
+      translate([ax - antenna_slot_w/2, antenna_row_y - 4, -0.5])
+        cube([antenna_slot_w, footprint_d - (antenna_row_y - 4), hatch_t + 1]);
   }
 }
 
@@ -338,7 +384,8 @@ module assembly_preview() {
     color("LightSlateGray") chamber();
     chamber_fan_cuts();
   }
-  translate([0, 0, base_h + chamber_h]) color("RoyalBlue") top();
+  translate([0, 0, base_h + chamber_h]) color("RoyalBlue") top_fixed();
+  translate([0, 0, base_h + chamber_h + top_wall_h]) color("DeepSkyBlue") top_hatch();
 }
 
 // ============================================================================
@@ -346,12 +393,14 @@ module assembly_preview() {
 // ============================================================================
 if (part == "base") base();
 else if (part == "chamber") difference() { chamber(); chamber_fan_cuts(); }
-else if (part == "top") top();
+else if (part == "top_fixed") top_fixed();
+else if (part == "top_hatch") top_hatch();
 else assembly_preview();
 
 // ----------------------------------------------------------------------------
 // Command-line export examples (from this directory):
-//   openscad -D 'part="base"'    -o base.stl    silicon-spyder-enclosure.scad
-//   openscad -D 'part="chamber"' -o chamber.stl silicon-spyder-enclosure.scad
-//   openscad -D 'part="top"'     -o top.stl      silicon-spyder-enclosure.scad
+//   openscad -D 'part="base"'      -o base.stl      silicon-spyder-enclosure.scad
+//   openscad -D 'part="chamber"'   -o chamber.stl   silicon-spyder-enclosure.scad
+//   openscad -D 'part="top_fixed"' -o top_fixed.stl silicon-spyder-enclosure.scad
+//   openscad -D 'part="top_hatch"' -o top_hatch.stl silicon-spyder-enclosure.scad
 // ----------------------------------------------------------------------------
