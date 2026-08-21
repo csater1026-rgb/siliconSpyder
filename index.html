@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Silicon Spyder</title>
+<meta name="description" content="Secure event WiFi with real-time attack detection." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#141b2c; --border:#232c42; --text:#e6ebf5; --text-dim:#8996b3;
+    --accent:#4d8bf0; --accent-2:#7bb0ff;
+    --disp:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(1200px 600px at 15% -10%,#131c33,var(--bg) 60%);color:var(--text);font-family:var(--body)}
+  .wrap{max-width:520px;padding:40px 24px;text-align:center}
+  .brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px}
+  h1{font-family:var(--disp);font-weight:700;font-size:28px;margin:0;letter-spacing:-.3px}
+  h1 .spyder{color:var(--accent-2)}
+  p.sub{color:var(--text-dim);font-size:14.5px;margin:10px 0 32px}
+  .cards{display:flex;flex-direction:column;gap:14px}
+  a.card{display:block;text-align:left;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;text-decoration:none;color:var(--text);transition:.15s}
+  a.card:hover{border-color:var(--accent);transform:translateY(-1px)}
+  a.card b{font-family:var(--disp);font-size:16px;display:block;margin-bottom:4px}
+  a.card span{color:var(--text-dim);font-size:13px}
+  a.card .arrow{float:right;color:var(--accent-2)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#4d8bf0" stroke-width="4"/>
+        <g stroke="#4d8bf0" stroke-width="3.5" fill="none" stroke-linecap="round">
+          <path d="M50 38 C32 34, 18 38, 8 46"/><path d="M50 44 C30 44, 16 50, 6 58"/>
+          <path d="M50 52 C32 56, 18 64, 10 74"/><path d="M50 58 C36 66, 28 76, 24 86"/>
+          <path d="M50 38 C68 34, 82 38, 92 46"/><path d="M50 44 C70 44, 84 50, 94 58"/>
+          <path d="M50 52 C68 56, 82 64, 90 74"/><path d="M50 58 C64 66, 72 76, 76 86"/>
+        </g>
+        <rect x="36" y="46" width="28" height="24" rx="5" fill="#5b9bf0"/>
+        <path d="M40 46 v-8 a10 10 0 0 1 20 0 v8" fill="none" stroke="#5b9bf0" stroke-width="5"/>
+        <circle cx="50" cy="56" r="3.2" fill="#0b0f17"/><rect x="48.5" y="57" width="3" height="7" fill="#0b0f17"/>
+      </svg>
+      <h1>Silicon<span class="spyder">Spyder</span></h1>
+    </div>
+    <p class="sub">Secure event WiFi with real-time attack detection.</p>
+    <div class="cards">
+      <a class="card" href="spyder-live.html"><span class="arrow">&rarr;</span><b>Silicon Spyder Live</b><span>Technician dashboard — live threat feed, stats, and detection legend</span></a>
+      <a class="card" href="spyder-protect.html"><span class="arrow">&rarr;</span><b>Spyder Protection</b><span>Attendee/vendor status page — you're protected, or here's what to do</span></a>
+    </div>
+  </div>
+</body>
+</html>
