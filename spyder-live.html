@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Silicon Spyder Live</title>
+<meta name="description" content="Live WiFi threat detection dashboard for Silicon Spyder." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0b0f17; --bg-2:#0f1524; --panel:#141b2c; --panel-2:#182036;
+    --border:#232c42; --text:#e6ebf5; --text-dim:#8996b3; --text-faint:#5c6885;
+    --accent:#4d8bf0; --accent-2:#7bb0ff; --accent-soft:rgba(77,139,240,.14);
+    --crit:#ef4444; --high:#f97316; --med:#eab308; --low:#4d8bf0; --ok:#22c55e;
+    --disp:'Space Grotesk',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 15% -10%,#131c33,var(--bg) 60%);color:var(--text);font-family:var(--body);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+  .mono{font-family:var(--mono)}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand svg{display:block}
+  .brand-text{font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:-.3px}
+  .brand-text .spyder{color:var(--accent-2)}
+  .brand-sub{font-family:var(--mono);font-size:11.5px;color:var(--text-faint);letter-spacing:.04em;margin-top:1px}
+  .head-actions{display:flex;align-items:center;gap:10px}
+  .status-pill{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--panel)}
+  .status-pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+  .status-pill.demo .dot{background:var(--med)}
+  .status-pill.err .dot{background:var(--crit)}
+  .icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+  .icon-btn:hover{border-color:var(--accent);color:var(--accent-2)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+  .stat .label{font-family:var(--mono);font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}
+  .stat .value{font-family:var(--disp);font-size:26px;font-weight:700;margin-top:6px}
+  .stat .value.accent{color:var(--accent-2)}
+
+  .grid{display:grid;grid-template-columns:2fr 1fr;gap:18px;align-items:start}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:18px 20px}
+  .panel h2{font-family:var(--disp);font-size:15px;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between}
+  .panel h2 .hint{font-family:var(--body);font-weight:400;font-size:12px;color:var(--text-faint)}
+
+  .feed{display:flex;flex-direction:column;gap:10px;max-height:640px;overflow-y:auto;padding-right:4px}
+  .feed::-webkit-scrollbar{width:8px}
+  .feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+  .empty{color:var(--text-faint);font-size:13.5px;padding:30px 10px;text-align:center}
+
+  .alert-card{border:1px solid var(--border);border-left:4px solid var(--low);background:var(--panel-2);border-radius:10px;padding:12px 14px;animation:slidein .25s ease}
+  @keyframes slidein{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .alert-card.crit{border-left-color:var(--crit)}
+  .alert-card.high{border-left-color:var(--high)}
+  .alert-card.med{border-left-color:var(--med)}
+  .alert-card.low{border-left-color:var(--low)}
+  .alert-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .alert-kind{font-weight:600;font-size:14px}
+  .sev-badge{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:999px}
+  .sev-badge.crit{background:rgba(239,68,68,.15);color:var(--crit)}
+  .sev-badge.high{background:rgba(249,115,22,.15);color:var(--high)}
+  .sev-badge.med{background:rgba(234,179,8,.15);color:var(--med)}
+  .sev-badge.low{background:var(--accent-soft);color:var(--accent-2)}
+  .alert-meta{font-family:var(--mono);font-size:11.5px;color:var(--text-dim);margin-top:6px;display:flex;flex-wrap:wrap;gap:10px}
+  .alert-desc{font-size:12.5px;color:var(--text-dim);margin-top:6px}
+
+  .legend{display:flex;flex-direction:column;gap:10px}
+  .legend-item{display:flex;gap:10px;align-items:flex-start;font-size:12.5px}
+  .legend-swatch{width:10px;height:10px;border-radius:3px;margin-top:3px;flex:none}
+  .legend-item b{display:block;font-size:13px}
+  .legend-item span{color:var(--text-dim)}
+
+  .demo-box{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .switch{position:relative;width:40px;height:22px;flex:none}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:var(--border);border-radius:999px;cursor:pointer;transition:.2s}
+  .slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+  input:checked + .slider{background:var(--accent)}
+  input:checked + .slider:before{transform:translateX(18px)}
+  .btn{font-family:var(--body);font-weight:600;font-size:13px;padding:9px 14px;border-radius:9px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--accent);color:var(--accent-2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{background:var(--accent-2);border-color:var(--accent-2);color:#0b0f17}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(5,8,15,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-backdrop.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:440px}
+  .modal h3{font-family:var(--disp);margin:0 0 6px}
+  .modal p.sub{color:var(--text-faint);font-size:12.5px;margin:0 0 18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-family:var(--mono)}
+  .field input{width:100%;background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;color:var(--text);font-family:var(--mono);font-size:12.5px}
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .field .note{font-size:11px;color:var(--text-faint);margin-top:4px}
+  .modal-actions{display:flex;gap:10px;margin-top:18px}
+  .modal-actions .btn{flex:1}
+  .close-x{position:absolute;top:16px;right:16px}
+
+  @media(max-width:860px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="42" height="42" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#4d8bf0" stroke-width="4"/>
+        <g stroke="#4d8bf0" stroke-width="3.5" fill="none" stroke-linecap="round">
+          <path d="M50 38 C32 34, 18 38, 8 46"/>
+          <path d="M50 44 C30 44, 16 50, 6 58"/>
+          <path d="M50 52 C32 56, 18 64, 10 74"/>
+          <path d="M50 58 C36 66, 28 76, 24 86"/>
+          <path d="M50 38 C68 34, 82 38, 92 46"/>
+          <path d="M50 44 C70 44, 84 50, 94 58"/>
+          <path d="M50 52 C68 56, 82 64, 90 74"/>
+          <path d="M50 58 C64 66, 72 76, 76 86"/>
+        </g>
+        <rect x="36" y="46" width="28" height="24" rx="5" fill="#5b9bf0"/>
+        <path d="M40 46 v-8 a10 10 0 0 1 20 0 v8" fill="none" stroke="#5b9bf0" stroke-width="5"/>
+        <circle cx="50" cy="56" r="3.2" fill="#0b0f17"/>
+        <rect x="48.5" y="57" width="3" height="7" fill="#0b0f17"/>
+      </svg>
+      <div>
+        <div class="brand-text">Silicon<span class="spyder">Spyder</span> Live</div>
+        <div class="brand-sub">EVENT WIFI THREAT MONITOR</div>
+      </div>
+    </div>
+    <div class="head-actions">
+      <div class="status-pill demo" id="statusPill"><span class="dot"></span><span id="statusText">Demo mode</span></div>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 0 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 0 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 0 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21a2 2 0 0 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Total Threats</div><div class="value" id="statTotal">0</div></div>
+    <div class="stat"><div class="label">Last 5 Min</div><div class="value accent" id="stat5min">0</div></div>
+    <div class="stat"><div class="label">Top Threat Type</div><div class="value" id="statTop" style="font-size:17px">—</div></div>
+    <div class="stat"><div class="label">Last Seen</div><div class="value" id="statLast" style="font-size:15px">—</div></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Live Threat Feed <span class="hint">polling every 3s</span></h2>
+      <div class="feed" id="feed"><div class="empty">No threats detected yet. This event's WiFi looks clean.</div></div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Attack Legend</h2>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="panel" style="margin-top:18px">
+        <h2>Demo Mode</h2>
+        <div class="demo-box">
+          <div class="row">
+            <span style="font-size:13px;color:var(--text-dim)">Simulate attacks</span>
+            <label class="switch"><input type="checkbox" id="demoToggle"><span class="slider"></span></label>
+          </div>
+          <button class="btn" id="simulateBtn">Trigger one simulated attack</button>
+          <div style="font-size:11.5px;color:var(--text-faint)">Demo mode runs automatically until real device credentials are saved in Settings.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal" style="position:relative">
+    <button class="icon-btn close-x" id="closeSettings">✕</button>
+    <h3>Connection Settings</h3>
+    <p class="sub">These are saved only in this browser's local storage — never uploaded anywhere else.</p>
+    <div class="field">
+      <label>Supabase Project URL</label>
+      <input id="cfgUrl" placeholder="https://xxxx.supabase.co" />
+    </div>
+    <div class="field">
+      <label>Supabase Anon / Publishable Key</label>
+      <input id="cfgAnon" placeholder="sb_publishable_..." />
+    </div>
+    <div class="field">
+      <label>Device ID</label>
+      <input id="cfgDeviceId" placeholder="spyder-01" />
+    </div>
+    <div class="field">
+      <label>Device Key</label>
+      <input id="cfgDeviceKey" placeholder="sk-spyder-..." />
+      <div class="note">Found on the Pi in spyder.py's cloud_push config. Required to leave demo mode.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelSettings">Cancel</button>
+      <button class="btn primary" id="saveSettings">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+let createClient = null;
+async function loadSupabaseLib(){
+  if (createClient) return createClient;
+  const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+  createClient = mod.createClient;
+  return createClient;
+}
+
+const DEFAULT_URL = "https://micnxjnhxdxlqftzmazx.supabase.co";
+const DEFAULT_ANON = "sb_publishable_47xkxyyZwzEQO0E72ZV1cg_-ODedhO4";
+const CFG_KEY = "ss_config_v1";
+
+const ATTACK_INFO = {
+  evil_twin:    { label: "Evil Twin",              sev: "crit", color: "var(--crit)", desc: "A network is impersonating this event's official WiFi to intercept traffic." },
+  karma:        { label: "Karma / Pineapple",      sev: "crit", color: "var(--crit)", desc: "A device is auto-responding to phones probing for saved networks, tricking them into connecting." },
+  rogue_ap:     { label: "Rogue Access Point",     sev: "high", color: "var(--high)", desc: "An unauthorized access point is broadcasting nearby." },
+  deauth_flood: { label: "Deauth Flood",           sev: "high", color: "var(--high)", desc: "Devices are being forcibly disconnected, possibly to force reconnection to a fake network." },
+  beacon_flood: { label: "Beacon Flood",           sev: "med",  color: "var(--med)",  desc: "A flood of fake network names is being broadcast to confuse device WiFi lists." },
+  open_network: { label: "Open Network",           sev: "low",  color: "var(--low)",  desc: "An unsecured (no password) WiFi network was detected nearby." },
+};
+const SEV_LABEL = { crit: "Critical", high: "High", med: "Medium", low: "Low" };
+const ATTACK_KEYS = Object.keys(ATTACK_INFO);
+
+function loadConfig(){
+  try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; }
+}
+function saveConfig(cfg){ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }
+
+let cfg = loadConfig();
+if (!cfg.url) cfg.url = DEFAULT_URL;
+if (!cfg.anon) cfg.anon = DEFAULT_ANON;
+
+let client = null;
+let demoMode = !(cfg.deviceId && cfg.deviceKey);
+let alerts = [];
+let seenIds = new Set();
+let pollTimer = null;
+let demoTimer = null;
+
+const feedEl = document.getElementById('feed');
+const legendEl = document.getElementById('legend');
+const statusPill = document.getElementById('statusPill');
+const statusText = document.getElementById('statusText');
+const demoToggle = document.getElementById('demoToggle');
+
+function buildLegend(){
+  legendEl.innerHTML = ATTACK_KEYS.map(k => {
+    const a = ATTACK_INFO[k];
+    return `<div class="legend-item"><span class="legend-swatch" style="background:${a.color}"></span><div><b>${a.label} <span style="color:var(--text-faint);font-weight:400">(${SEV_LABEL[a.sev]})</span></b><span>${a.desc}</span></div></div>`;
+  }).join('');
+}
+
+function setStatus(mode){
+  statusPill.classList.remove('demo','err');
+  if (mode === 'live'){ statusText.textContent = 'Live'; }
+  else if (mode === 'error'){ statusPill.classList.add('err'); statusText.textContent = 'Connection error'; }
+  else { statusPill.classList.add('demo'); statusText.textContent = 'Demo mode'; }
+}
+
+function timeAgo(iso){
+  const s = Math.floor((Date.now() - new Date(iso).getTime())/1000);
+  if (s < 5) return 'just now';
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  return Math.floor(s/3600) + 'h ago';
+}
+
+function renderFeed(){
+  if (!alerts.length){
+    feedEl.innerHTML = `<div class="empty">No threats detected yet. This event's WiFi looks clean.</div>`;
+    return;
+  }
+  const sorted = [...alerts].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  feedEl.innerHTML = sorted.slice(0, 100).map(a => {
+    const info = ATTACK_INFO[a.kind] || { label: a.kind, sev: 'low', desc: '' };
+    return `<div class="alert-card ${info.sev}">
+      <div class="alert-top">
+        <span class="alert-kind">${info.label}</span>
+        <span class="sev-badge ${info.sev}">${SEV_LABEL[info.sev]}</span>
+      </div>
+      <div class="alert-meta">
+        <span>SSID: ${a.ssid || '—'}</span>
+        <span>BSSID: ${a.bssid || '—'}</span>
+        <span>Signal: ${a.signal ?? '—'} dBm</span>
+        <span>${timeAgo(a.created_at)}</span>
+      </div>
+      <div class="alert-desc">${info.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateStats(){
+  document.getElementById('statTotal').textContent = alerts.length;
+  const fiveMinAgo = Date.now() - 5*60*1000;
+  document.getElementById('stat5min').textContent = alerts.filter(a => new Date(a.created_at).getTime() > fiveMinAgo).length;
+  if (alerts.length){
+    const counts = {};
+    alerts.forEach(a => counts[a.kind] = (counts[a.kind]||0) + 1);
+    const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+    document.getElementById('statTop').textContent = (ATTACK_INFO[top]||{}).label || top;
+    const latest = [...alerts].sort((a,b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    document.getElementById('statLast').textContent = timeAgo(latest.created_at);
+  } else {
+    document.getElementById('statTop').textContent = '—';
+    document.getElementById('statLast').textContent = '—';
+  }
+}
+
+function addAlert(a){
+  const id = a.id ?? `${a.kind}-${a.created_at}-${a.bssid}`;
+  if (seenIds.has(id)) return;
+  seenIds.add(id);
+  alerts.push({...a, id});
+  renderFeed();
+  updateStats();
+}
+
+async function pollLive(){
+  if (!client) return;
+  try {
+    const { data, error } = await client.rpc('get_alerts', {
+      p_device_id: cfg.deviceId, p_device_key: cfg.deviceKey, p_limit: 100
+    });
+    if (error) throw error;
+    setStatus('live');
+    (data || []).forEach(addAlert);
+  } catch (e) {
+    console.error('Silicon Spyder: poll failed', e);
+    setStatus('error');
+  }
+}
+
+function randomAlert(){
+  const kind = ATTACK_KEYS[Math.floor(Math.random()*ATTACK_KEYS.length)];
+  const macOctet = () => Math.floor(Math.random()*256).toString(16).padStart(2,'0');
+  return {
+    id: 'demo-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+    kind,
+    ssid: ['EventWiFi-Guest','Free_Public_WiFi','EventWiFi','Coffee-Shop-Free'][Math.floor(Math.random()*4)],
+    bssid: Array.from({length:6}, macOctet).join(':'),
+    signal: -(30 + Math.floor(Math.random()*55)),
+    created_at: new Date().toISOString(),
+  };
+}
+
+function startDemo(){
+  stopDemo();
+  demoTimer = setInterval(() => addAlert(randomAlert()), 8000 + Math.random()*10000);
+}
+function stopDemo(){ if (demoTimer) clearInterval(demoTimer); demoTimer = null; }
+
+function startLivePolling(){
+  stopLivePolling();
+  pollLive();
+  pollTimer = setInterval(pollLive, 3000);
+}
+function stopLivePolling(){ if (pollTimer) clearInterval(pollTimer); pollTimer = null; }
+
+async function applyMode(){
+  stopDemo(); stopLivePolling();
+  if (demoMode){
+    setStatus('demo');
+    demoToggle.checked = true;
+    startDemo();
+  } else {
+    demoToggle.checked = false;
+    if (!client){
+      try {
+        const make = await loadSupabaseLib();
+        client = make(cfg.url, cfg.anon);
+      } catch (e) {
+        console.error('Silicon Spyder: failed to load Supabase client', e);
+        setStatus('error');
+        return;
+      }
+    }
+    startLivePolling();
+  }
+}
+
+demoToggle.addEventListener('change', () => {
+  demoMode = demoToggle.checked;
+  applyMode();
+});
+document.getElementById('simulateBtn').addEventListener('click', () => addAlert(randomAlert()));
+
+const modal = document.getElementById('settingsModal');
+function openModal(){
+  document.getElementById('cfgUrl').value = cfg.url || '';
+  document.getElementById('cfgAnon').value = cfg.anon || '';
+  document.getElementById('cfgDeviceId').value = cfg.deviceId || '';
+  document.getElementById('cfgDeviceKey').value = cfg.deviceKey || '';
+  modal.classList.add('open');
+}
+function closeModal(){ modal.classList.remove('open'); }
+document.getElementById('settingsBtn').addEventListener('click', openModal);
+document.getElementById('closeSettings').addEventListener('click', closeModal);
+document.getElementById('cancelSettings').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+document.getElementById('saveSettings').addEventListener('click', () => {
+  cfg = {
+    url: document.getElementById('cfgUrl').value.trim() || DEFAULT_URL,
+    anon: document.getElementById('cfgAnon').value.trim() || DEFAULT_ANON,
+    deviceId: document.getElementById('cfgDeviceId').value.trim(),
+    deviceKey: document.getElementById('cfgDeviceKey').value.trim(),
+  };
+  saveConfig(cfg);
+  client = null;
+  alerts = []; seenIds = new Set();
+  demoMode = !(cfg.deviceId && cfg.deviceKey);
+  closeModal();
+  applyMode();
+});
+
+buildLegend();
+applyMode();
+</script>
+</body>
+</html>
