@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Secure WiFi Box Build Guide — Silicon Spyder</title>
+<meta name="description" content="How to build the Silicon Spyder secure WiFi box: architecture, parts list, wiring, enclosure, software stack, and a phased build plan." />
+<meta name="theme-color" content="#0d131a">
+<style>
+:root{
+  --bg:#f5f7fa; --card:#ffffff; --card-2:#eef2f7; --code:#0f1a27; --code-ink:#d7e3f0;
+  --ink:#14202b; --ink-soft:#54626f; --ink-faint:#7c8896; --line:#dde4ec; --line-soft:#e9eef3;
+  --accent:#1d5fb0; --accent-deep:#14498c; --accent-soft:#e4eef9;
+  --ok:#12805c; --ok-bg:#dcf1e8; --warn:#c2740a; --warn-bg:#fbeecf; --crit:#c33346; --crit-bg:#fbe4e7;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --maxw:960px;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d131a; --card:#141d26; --card-2:#1b2731; --code:#0a121c; --code-ink:#c4d6e6;
+  --ink:#e7edf3; --ink-soft:#a1afbc; --ink-faint:#73818e; --line:#25333f; --line-soft:#1d2832;
+  --accent:#5b9bf0; --accent-deep:#8bbcf7; --accent-soft:#122436;
+  --ok:#3ec98d; --ok-bg:#0f2b20; --warn:#e3a44e; --warn-bg:#2c2110; --crit:#f0778a; --crit-bg:#2c1519;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d131a; --card:#141d26; --card-2:#1b2731; --code:#0a121c; --code-ink:#c4d6e6;
+  --ink:#e7edf3; --ink-soft:#a1afbc; --ink-faint:#73818e; --line:#25333f; --line-soft:#1d2832;
+  --accent:#5b9bf0; --accent-deep:#8bbcf7; --accent-soft:#122436;
+  --ok:#3ec98d; --ok-bg:#0f2b20; --warn:#e3a44e; --warn-bg:#2c2110; --crit:#f0778a; --crit-bg:#2c1519;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+.backlink{max-width:var(--maxw);margin:0 auto;padding:14px 22px 0}
+.backlink a{font-family:var(--mono);font-size:12px;color:var(--ink-soft);text-decoration:none}
+.backlink a:hover{color:var(--accent-deep)}
+
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--accent-soft),transparent)}
+header .wrap{padding:20px 22px 30px}
+.brand{display:flex;align-items:center;gap:13px;margin-bottom:22px}
+.brand b{font-size:15px;letter-spacing:-.2px}
+.brand .tag{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);border:1px solid var(--line);border-radius:5px;padding:4px 9px}
+h1{font-size:clamp(27px,5vw,39px);line-height:1.08;letter-spacing:-1px;margin:0 0 12px;text-wrap:balance;font-weight:770}
+.lede{font-size:17.5px;color:var(--ink-soft);max-width:62ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:6px 24px;margin-top:22px;font-size:13.5px;color:var(--ink-soft)}
+.meta b{color:var(--ink)}
+
+nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(9px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:3px;overflow-x:auto;padding:9px 22px;scrollbar-width:thin}
+nav a{flex:none;font-size:12.5px;color:var(--ink-soft);text-decoration:none;padding:6px 11px;border-radius:7px;white-space:nowrap;font-weight:500}
+nav a:hover{background:var(--card-2);color:var(--ink)}
+
+section{padding:44px 0;border-bottom:1px solid var(--line-soft)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-deep);margin:0 0 10px;font-weight:600}
+h2{font-size:25px;letter-spacing:-.5px;margin:0 0 14px;font-weight:730;text-wrap:balance}
+h3{font-size:18px;margin:26px 0 8px;font-weight:660;letter-spacing:-.2px}
+p{margin:0 0 14px}
+a{color:var(--accent-deep)}
+strong{font-weight:640}
+.muted{color:var(--ink-soft)}
+ul,ol{margin:8px 0 14px;padding-left:22px}
+li{margin:5px 0}
+
+.callout{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:16px 18px;margin:18px 0}
+.callout.warn{border-left-color:var(--warn)} .callout.crit{border-left-color:var(--crit)} .callout.ok{border-left-color:var(--ok)}
+.callout .t{font-family:var(--mono);font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--accent-deep);display:block;margin-bottom:6px}
+.callout.warn .t{color:var(--warn)} .callout.crit .t{color:var(--crit)} .callout.ok .t{color:var(--ok)}
+.callout p:last-child{margin-bottom:0}
+
+pre{background:var(--code);color:var(--code-ink);border-radius:11px;padding:15px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.6;margin:12px 0;border:1px solid var(--line)}
+pre .c{color:#6b8199}
+code{font-family:var(--mono);font-size:.9em;background:var(--card-2);border-radius:4px;padding:1px 5px}
+pre code{background:none;padding:0;font-size:13px}
+
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+.tw{overflow-x:auto}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+td b{font-weight:640}
+.right{text-align:right;font-variant-numeric:tabular-nums}
+
+.flow{display:flex;flex-direction:column;gap:12px;margin:18px 0}
+.frow{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap}
+.node{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.node .n{font-weight:660;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.node .d{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+.node.wan{border-left:3px solid var(--warn)} .node.brain{border-left:3px solid var(--accent)}
+.node.ap{border-left:3px solid var(--ok)} .node.sec{border-left:3px solid var(--crit)} .node.cli{border-left:3px solid var(--ink-faint)}
+.arrow{align-self:center;color:var(--ink-faint);font-size:20px;flex:none}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+
+.phase{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:16px 0}
+.phase .h{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.phase .num{width:30px;height:30px;border-radius:8px;background:var(--accent-soft);color:var(--accent-deep);font-weight:750;display:grid;place-items:center;font-size:15px;flex:none;font-family:var(--mono)}
+.phase h3{margin:0;font-size:17px}
+.phase .goal{font-size:13px;color:var(--ink-soft);margin:2px 0 12px 42px}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);vertical-align:middle}
+.pill.ok{background:var(--ok-bg);color:var(--ok);border-color:transparent}
+.pill.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+
+footer{padding:32px 0 60px;color:var(--ink-faint);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="backlink"><a href="index.html">&larr; Silicon Spyder</a></div>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <circle cx="32" cy="33" r="25" stroke="var(--accent)" stroke-width="2.8" fill="none"/>
+        <g transform="translate(32 33) scale(0.64) translate(-32 -40)">
+          <g stroke="var(--accent)" stroke-width="4.7" stroke-linecap="round" fill="none">
+            <path d="M23 34C15 26 9 27 5 33"/><path d="M23 38C14 34 8 36 4 41"/><path d="M23 41C14 41 8 44 5 49"/><path d="M23 44C15 48 11 51 7 55"/>
+            <path d="M41 34C49 26 55 27 59 33"/><path d="M41 38C50 34 56 36 60 41"/><path d="M41 41C50 41 56 44 59 49"/><path d="M41 44C49 48 53 51 57 55"/>
+          </g>
+          <path d="M27 31v-5a5 5 0 0 1 10 0v5" stroke="var(--accent)" stroke-width="5.1" fill="none"/>
+          <rect x="22" y="29" width="20" height="20" rx="4.5" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="4.8"/>
+          <circle cx="32" cy="38" r="3.7" fill="var(--accent)"/><path d="M32 41.4 29.6 49h4.8Z" fill="var(--accent)"/>
+        </g>
+      </svg>
+      <b>Silicon<span style="color:var(--accent)">Spyder</span></b>
+      <span class="tag">Build Guide</span>
+    </div>
+    <h1>The Secure WiFi Box</h1>
+    <p class="lede">How to build one portable device that provides event WiFi, meters how much internet is used,
+      and watches the airwaves for attacks — all reporting to your live dashboards.</p>
+    <div class="meta">
+      <span><b>Target:</b> 25–50 concurrent users</span>
+      <span><b>Core:</b> Raspberry Pi 4 + SIM7600G-H 4G HAT</span>
+      <span><b>Build cost:</b> ~$180–260 + data plan</span>
+      <span><b>Level:</b> Advanced / multi-phase</span>
+    </div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#concept">Concept</a>
+  <a href="#arch">Architecture</a>
+  <a href="#bom">Parts</a>
+  <a href="#wiring">Wiring</a>
+  <a href="#enclosure">Enclosure</a>
+  <a href="#stack">Software</a>
+  <a href="#build">Build phases</a>
+  <a href="#risks">Risks</a>
+  <a href="#test">Testing</a>
+  <a href="#roadmap">Roadmap</a>
+</div></nav>
+
+<main>
+<section id="concept">
+  <div class="wrap">
+    <p class="eyebrow">The concept</p>
+    <h2>One box that does three jobs — and sells one story.</h2>
+    <p>Today the Spyder is a <strong>passive security monitor</strong>. This upgrade turns it into a complete
+      <strong>secure event-WiFi appliance</strong>: plug it in at a venue and it (1) hands out WiFi to
+      vendors and attendees, (2) tracks how much data the event is using, and (3) keeps watching for rogue
+      access points, evil twins, and other attacks — feeding all of it to your customer and technician
+      dashboards.</p>
+    <div class="callout">
+      <span class="t">The pitch in one line</span>
+      <p>"Plug in one box and get <strong>secure, monitored WiFi</strong> for your event — connection, usage,
+        and threat protection, all in a device you can hold in one hand."</p>
+    </div>
+    <p>The important design principle below: <strong>don't build the parts that are already solved.</strong>
+      Reliable multi-client WiFi and cellular radios are hard, mature products — buy those. Spend your
+      engineering on the parts that are <em>yours</em>: the integration, the metering, the detection, and the
+      dashboards.</p>
+  </div>
+</section>
+
+<section id="arch">
+  <div class="wrap">
+    <p class="eyebrow">Architecture</p>
+    <h2>How the pieces fit — the signal chain.</h2>
+    <p>Traffic flows left to right. The Pi sits in the middle as the <strong>brain</strong>: it pulls internet
+      from the cellular modem, hands it to the access point that serves the crowd, and meters everything that
+      passes through. A separate adapter sniffs the air for threats in parallel.</p>
+
+    <div class="flow">
+      <div class="frow">
+        <div class="node wan"><div class="n"><span class="dot" style="background:var(--warn)"></span>1 · Cellular modem</div><div class="d">4G/5G + SIM. The internet source (WAN). Presents as a network interface to the Pi.</div></div>
+        <div class="arrow">→</div>
+        <div class="node brain"><div class="n"><span class="dot" style="background:var(--accent)"></span>2 · Raspberry Pi (brain)</div><div class="d">Router (NAT + DHCP), usage meter, cloud uplink. Everything flows through here.</div></div>
+        <div class="arrow">→</div>
+        <div class="node ap"><div class="n"><span class="dot" style="background:var(--ok)"></span>3 · Access point</div><div class="d">Dedicated dual-band AP in bridge mode. Serves WiFi to 25–50 devices.</div></div>
+        <div class="arrow">→</div>
+        <div class="node cli"><div class="n"><span class="dot" style="background:var(--ink-faint)"></span>Clients</div><div class="d">Vendors &amp; attendees on phones/tablets.</div></div>
+      </div>
+      <div class="frow">
+        <div class="node sec" style="max-width:340px"><div class="n"><span class="dot" style="background:var(--crit)"></span>4 · Security adapter (parallel)</div><div class="d">USB WiFi adapter in <b>monitor mode</b> running <code>spyder.py</code> — sniffs 802.11 management frames for attacks. Not in the data path.</div></div>
+        <div class="arrow">→</div>
+        <div class="node" style="max-width:340px"><div class="n">☁ Supabase → Dashboards</div><div class="d">The Pi pushes threats <em>and</em> usage to the cloud; your two dashboards read it live.</div></div>
+      </div>
+    </div>
+
+    <div class="callout ok">
+      <span class="t">Privacy = a feature</span>
+      <p>You meter data <strong>volume</strong> (how many gigabytes), never data <strong>content</strong>. The
+        security adapter reads WiFi <em>management</em> frames (network announcements), not people's private
+        traffic. That's a genuine selling point — "we protect the network without snooping on your guests."</p>
+    </div>
+  </div>
+</section>
+
+<section id="bom">
+  <div class="wrap">
+    <p class="eyebrow">Bill of materials</p>
+    <h2>What to buy, and why.</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Job</th><th>Part</th><th>Why this</th><th class="right">~Cost</th></tr></thead>
+      <tbody>
+        <tr><td><b>Brain</b></td><td><a href="https://www.raspberrypi.com/products/raspberry-pi-4-model-b/">Raspberry Pi 4</a> ✅ your choice — plenty of power for routing + metering + detection, and skips the 2026 RAM-shortage price spike hitting the Pi 5 8GB (~$175)</td><td>Reuse one you have, or ~$45–75 for a 4GB board.</td><td class="right">$0–75</td></tr>
+        <tr><td><b>Internet (WAN)</b></td><td><a href="https://www.waveshare.com/sim7600g-h-4g-hat.htm">Waveshare SIM7600G-H 4G HAT</a> (<a href="https://www.amazon.com/Waveshare-SIM7600G-H-Compatible-Raspberry-Positioning/dp/B0BD544MRN">Amazon</a>) — global bands, LTE Cat-4, GNSS; <em>modem + antenna included</em></td><td>The mobile internet source. "G-H" = global bands (works on US carriers); GNSS is a bonus (the box can know its own location).</td><td class="right">~$85</td></tr>
+        <tr><td><b>Data</b></td><td>SIM card + 4G data plan</td><td>Recurring. The real ceiling for 25–50 users — buy generous.</td><td class="right">monthly</td></tr>
+        <tr><td><b>WiFi (AP)</b></td><td><a href="https://www.amazon.com/GL-iNet-GL-MT3000-Pocket-Sized-Wireless-Gigabit/dp/B0BPSGJN7T">GL.iNet Beryl AX (GL-MT3000)</a> or <a href="https://www.amazon.com/WiFi-6-Router-Gigabit-Wireless/dp/B08H8ZLKKK">TP-Link Archer AX21</a> — WiFi 6, dual-band, set to AP mode <span class="pill">or $0: Pi onboard WiFi for early ≤10-client testing</span></td><td>WiFi 6 (OFDMA) is built for many devices at once — what the Pi's own radio can't do. Start free on the Pi's WiFi to build/test, add the AP for the real 25–50.</td><td class="right">$48–74</td></tr>
+        <tr><td><b>Security</b></td><td>USB WiFi adapter (your MT7921/Alfa) — monitor mode</td><td>Dedicated sniffer for the detection engine.</td><td class="right">have it</td></tr>
+        <tr><td><b>Power</b></td><td>High-capacity USB-C PD power bank (≥ 20,000 mAh, PD 30W+)</td><td>Runs Pi + modem + AP together for hours.</td><td class="right">$40–80</td></tr>
+        <tr><td><b>Enclosure</b></td><td>Vented case + heatsink/fan, short cables</td><td>Heat kills reliability at load.</td><td class="right">$20–40</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted">Ballpark <strong>~$200–290</strong> in parts for the 4G DIY build (less if you reuse a Pi 4 and
+      start on its onboard WiFi), plus the data plan. Research the plan and the venue's cellular signal
+      <em>before</em> buying — they decide whether 50 users is smooth or unusable.</p>
+    <p class="muted" style="font-size:12.5px">Prices &amp; links checked Aug 2026 (US retailers) — they fluctuate and vary by region,
+      so treat them as a starting point and confirm at checkout. Links point to representative listings, not endorsements.</p>
+
+    <h3>The two connectivity parts — picked for you</h3>
+
+    <h3 style="font-size:16px;margin-top:16px">📶 The access point</h3>
+    <p>Get a <strong>WiFi 6, dual-band</strong> router and set it to <strong>Access Point mode</strong>, wired to
+      the Pi. WiFi 6 has a feature (OFDMA) built for talking to many devices at once — exactly your 25–50 case.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Model</th><th>Why</th><th class="right">~Price</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://www.amazon.com/GL-iNet-GL-MT3000-Pocket-Sized-Wireless-Gigabit/dp/B0BPSGJN7T"><b>GL.iNet Beryl AX (GL-MT3000)</b></a> ⭐</td><td>Tiny, portable, WiFi 6, runs OpenWRT (hackable + reads usage stats). Best match for a portable box. <a href="https://www.gl-inet.com/en-us/products/gl-mt3000">Official</a> $98.99.</td><td class="right">~$74 (Amazon)</td></tr>
+        <tr><td><a href="https://www.amazon.com/WiFi-6-Router-Gigabit-Wireless/dp/B08H8ZLKKK"><b>TP-Link Archer AX21 (AX1800)</b></a></td><td>Cheap, WiFi 6, dead-simple AP mode, great value. Often on sale. <b>(You already own this one.)</b></td><td class="right">~$48–70</td></tr>
+      </tbody>
+    </table></div>
+    <p class="muted"><b>Reality check:</b> one consumer AP comfortably handles <b>~25–30 active users</b>; a full
+      <b>50 heavy users</b> pushes a single unit. Start with one, load-test it, add a second if you routinely hit 50.</p>
+
+    <h3 style="font-size:16px;margin-top:20px">🛰️ The 4G data plan</h3>
+    <div class="callout warn"><span class="t">First surprise: 25–50 people burn a LOT of data</span>
+      <p>A 6-hour event, ~40 people, moderate use ≈ <strong>~170 GB per event</strong>. Even light use is
+        <strong>40–60 GB</strong>. You need a plan measured in <strong>hundreds of GB or truly unlimited</strong> —
+        not a small phone plan.</p>
+    </div>
+    <p>What to look for, in priority order:</p>
+    <ol>
+      <li><strong>Coverage at your venue first.</strong> In rural Idaho this is everything — the best plan is
+        useless with one bar. Pick the carrier (Verizon / AT&amp;T / T-Mobile) with the strongest signal where
+        you'll deploy; Verizon &amp; AT&amp;T usually win rural. Test on-site if you can.</li>
+      <li><strong>A real "hotspot / data-only" plan — NOT a phone plan.</strong> The #1 trap: most "unlimited"
+        <em>phone</em> plans throttle hotspot/tethering to a tiny cap (10–30 GB). Your box <em>is</em> a hotspot,
+        so you need a plan whose <em>full</em> allowance is usable as hotspot data.</li>
+      <li><strong>High cap or unlimited</strong> with a high throttle threshold. Look at carrier
+        <em>data-only / hotspot device</em> plans, or business/IoT data SIMs. Budget <strong>~$50–90/month</strong>.</li>
+      <li><strong>Avoid cheap MVNOs</strong> for this — they often deprioritize your traffic, which collapses under
+        a 50-person load.</li>
+    </ol>
+    <div class="callout crit"><span class="t">This is your biggest recurring cost AND your real capacity ceiling</span>
+      <p>Lock down the plan and coverage-test the venue <strong>before</strong> buying hardware — the data plan,
+        not the electronics, is what decides whether 50 users is smooth or unusable.</p>
+    </div>
+  </div>
+</section>
+
+<section id="wiring">
+  <div class="wrap">
+    <p class="eyebrow">Physical wiring</p>
+    <h2>How it connects.</h2>
+    <p>Give the Pi three network roles on three different interfaces so nothing conflicts:</p>
+    <div class="tw"><table>
+      <thead><tr><th>Pi interface</th><th>Role</th><th>Connects to</th></tr></thead>
+      <tbody>
+        <tr><td><code>wwan0</code> / <code>usb0</code> / <code>ppp0</code></td><td><b>WAN</b> — internet in</td><td>The cellular modem (USB or HAT)</td></tr>
+        <tr><td><code>eth0</code> (onboard)</td><td><b>LAN</b> — serves clients</td><td>Ethernet to the access point (bridge mode)</td></tr>
+        <tr><td><code>wlan1</code> (USB adapter)</td><td><b>Monitor</b> — detection</td><td>Nothing — it just listens to the air</td></tr>
+        <tr><td><code>wlan0</code> (onboard WiFi)</td><td>Spare / management</td><td>Optional admin access</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><span class="t">Signal chain</span>
+      <p>Modem&nbsp;→&nbsp;(USB)&nbsp;→&nbsp;<b>Pi</b>&nbsp;→&nbsp;(Ethernet, <code>eth0</code>)&nbsp;→&nbsp;Access Point&nbsp;→&nbsp;(WiFi)&nbsp;→&nbsp;Clients. The Pi meters on the WAN interface; the AP just relays.</p>
+    </div>
+  </div>
+</section>
+
+<section id="enclosure">
+  <div class="wrap">
+    <p class="eyebrow">Enclosure design</p>
+    <h2>Two-tier build — router on top, electronics below.</h2>
+    <p>Three stacked tiers in one enclosed unit with a single <strong>flush footprint</strong>: the
+      <strong>router</strong> on top (vented cover, antennas poking out); a <strong>vented cooling chamber</strong>
+      in the middle with fans that cool both the router above and the electronics below; and the
+      <strong>electronics base</strong> at the bottom. Because the router is narrower than the module, the
+      <strong>voids beside it do double duty</strong> — an internal <strong>cable chase</strong> (router power +
+      Ethernet run straight down to the Pi, no dangling cables) and <strong>carry handles</strong>.
+      Cellular/GNSS antennas mount on the sides of the base.</p>
+
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto">
+      <svg viewBox="0 0 620 366" role="img" aria-label="Three-tier enclosure: router with vented cover and antennas on top; an enclosed vented cooling chamber with two fans in the middle; electronics base at the bottom; cellular antennas on the sides" style="width:100%;max-width:600px;display:block;margin:0 auto;font-family:var(--sans)">
+        <g stroke="var(--accent)" stroke-width="3.6" stroke-linecap="round">
+          <line x1="252" y1="144" x2="235" y2="60"/><line x1="286" y1="144" x2="278" y2="52"/>
+          <line x1="334" y1="144" x2="342" y2="52"/><line x1="368" y1="144" x2="385" y2="60"/>
+        </g>
+        <circle cx="235" cy="60" r="3.4" fill="var(--accent)"/><circle cx="278" cy="52" r="3.4" fill="var(--accent)"/>
+        <circle cx="342" cy="52" r="3.4" fill="var(--accent)"/><circle cx="385" cy="60" r="3.4" fill="var(--accent)"/>
+        <text x="310" y="32" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--accent-deep)">Router antennas poke through — open air</text>
+
+        <rect x="184" y="136" width="252" height="12" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.7"/>
+        <g stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round">
+          <line x1="200" y1="139" x2="200" y2="145"/><line x1="208" y1="139" x2="208" y2="145"/><line x1="216" y1="139" x2="216" y2="145"/>
+          <line x1="404" y1="139" x2="404" y2="145"/><line x1="412" y1="139" x2="412" y2="145"/><line x1="420" y1="139" x2="420" y2="145"/>
+        </g>
+
+        <rect x="184" y="148" width="9" height="57" rx="2" fill="var(--accent)"/>
+        <rect x="427" y="148" width="9" height="57" rx="2" fill="var(--accent)"/>
+        <rect x="222" y="150" width="176" height="53" rx="7" fill="var(--card-2)" stroke="var(--ink-soft)" stroke-width="2"/>
+        <text x="310" y="182" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">ROUTER (Wi-Fi 6)</text>
+
+        <rect x="197" y="158" width="20" height="9" rx="4.5" fill="none" stroke="var(--accent-deep)" stroke-width="2"/>
+        <rect x="403" y="158" width="20" height="9" rx="4.5" fill="none" stroke="var(--accent-deep)" stroke-width="2"/>
+
+        <rect x="184" y="205" width="252" height="11" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.6"/>
+
+        <rect x="184" y="218" width="252" height="52" rx="6" fill="var(--card)" stroke="var(--accent)" stroke-width="2"/>
+        <g stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round">
+          <line x1="190" y1="228" x2="202" y2="228"/><line x1="190" y1="236" x2="202" y2="236"/><line x1="190" y1="244" x2="202" y2="244"/><line x1="190" y1="252" x2="202" y2="252"/><line x1="190" y1="260" x2="202" y2="260"/>
+          <line x1="418" y1="228" x2="430" y2="228"/><line x1="418" y1="236" x2="430" y2="236"/><line x1="418" y1="244" x2="430" y2="244"/><line x1="418" y1="252" x2="430" y2="252"/><line x1="418" y1="260" x2="430" y2="260"/>
+        </g>
+        <circle cx="272" cy="244" r="15" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="272" cy="244" r="2.6" fill="var(--accent)"/>
+        <g stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"><line x1="272" y1="244" x2="272" y2="232"/><line x1="272" y1="244" x2="284" y2="244"/><line x1="272" y1="244" x2="272" y2="256"/><line x1="272" y1="244" x2="260" y2="244"/></g>
+        <circle cx="348" cy="244" r="15" fill="none" stroke="var(--accent)" stroke-width="2"/><circle cx="348" cy="244" r="2.6" fill="var(--accent)"/>
+        <g stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"><line x1="348" y1="244" x2="348" y2="232"/><line x1="348" y1="244" x2="360" y2="244"/><line x1="348" y1="244" x2="348" y2="256"/><line x1="348" y1="244" x2="336" y2="244"/></g>
+        <g stroke="var(--ink-faint)" stroke-width="1.5"><line x1="166" y1="244" x2="182" y2="244"/><line x1="454" y1="244" x2="438" y2="244"/></g>
+        <path d="M184 244 l-8 -4 v8 Z" fill="var(--ink-faint)"/><path d="M436 244 l8 -4 v8 Z" fill="var(--ink-faint)"/>
+
+        <rect x="184" y="270" width="252" height="68" rx="7" fill="var(--card-2)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="310" y="300" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Electronics base</text>
+        <text x="310" y="319" text-anchor="middle" font-size="11.5" fill="var(--ink-soft)">Pi 4 + 4G HAT + Wi-Fi adapter</text>
+
+        <g stroke="var(--ink-soft)" stroke-width="3.4" stroke-linecap="round">
+          <line x1="184" y1="289" x2="142" y2="276"/><line x1="184" y1="307" x2="136" y2="301"/>
+          <line x1="436" y1="289" x2="478" y2="276"/><line x1="436" y1="307" x2="484" y2="301"/>
+        </g>
+
+        <path d="M245 202 C222 207 206 214 206 236 L206 296 C206 311 220 317 244 319" fill="none" stroke="var(--warn)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="245" cy="202" r="2.6" fill="var(--warn)"/>
+
+        <g stroke="var(--ink-faint)" stroke-width="1" stroke-dasharray="3 3">
+          <line x1="470" y1="140" x2="436" y2="140"/>
+          <line x1="470" y1="163" x2="423" y2="163"/>
+          <line x1="150" y1="176" x2="193" y2="176"/>
+          <line x1="150" y1="236" x2="206" y2="236"/>
+          <line x1="470" y1="242" x2="436" y2="242"/>
+          <line x1="112" y1="314" x2="140" y2="301"/>
+        </g>
+        <text x="476" y="136" text-anchor="start" font-size="11" font-weight="600" fill="var(--ink)">Vented top cover</text>
+        <text x="476" y="149" text-anchor="start" font-size="11" fill="var(--ink-soft)">(slots — breathes)</text>
+        <text x="476" y="166" text-anchor="start" font-size="11" font-weight="600" fill="var(--accent-deep)">Carry handles</text>
+        <text x="146" y="173" text-anchor="end" font-size="11" font-weight="600" fill="var(--ink)">Outer walls flush</text>
+        <text x="146" y="186" text-anchor="end" font-size="11" fill="var(--ink-soft)">(non-metal)</text>
+        <text x="146" y="232" text-anchor="end" font-size="11" font-weight="600" fill="var(--warn)">Cable chase</text>
+        <text x="146" y="245" text-anchor="end" font-size="11" fill="var(--ink-soft)">router → Pi (void)</text>
+        <text x="476" y="238" text-anchor="start" font-size="11" font-weight="600" fill="var(--accent-deep)">Cooling chamber</text>
+        <text x="476" y="251" text-anchor="start" font-size="11" fill="var(--ink-soft)">vented walls + fans</text>
+        <text x="108" y="310" text-anchor="end" font-size="11" font-weight="600" fill="var(--ink)">Cellular +</text>
+        <text x="108" y="323" text-anchor="end" font-size="11" fill="var(--ink-soft)">GNSS (sides)</text>
+      </svg>
+    </div>
+
+    <h3>The rules that make it work</h3>
+    <ul>
+      <li><strong>Frame = non-metal only.</strong> Plastic / acrylic / 3D-print / wood. <em>Metal blocks WiFi.</em></li>
+      <li><strong>Vented top cover — don't clamp the vents.</strong> A cover is fine (plastic doesn't block WiFi); just give it slots or a gap so the router's heat still escapes upward. The antennas poke through it.</li>
+      <li><strong>Middle = an enclosed vented cooling chamber.</strong> Wall it in, put vents on the sides, and mount the fans here — they pull cool air in and blow it across the router's underside and the electronics. Give it a clear in→out path so air actually flows, not just swirls. Cables route through here too.</li>
+      <li><strong>Use the side voids twice.</strong> The router is narrower than the module, so the space beside it becomes an internal <strong>cable chase</strong> (route the router's Ethernet + power straight down to the Pi) — and grip cutouts up there double as <strong>carry handles</strong>.</li>
+      <li><strong>Cellular/GNSS antennas panel-mount on the base sides</strong> via SMA bulkhead + short extension cables.</li>
+      <li><strong>Make the top liftable</strong> (off the legs) so the unit flattens for transport, reassembles in 30 seconds.</li>
+    </ul>
+
+    <h3>Enclosure parts</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Part</th><th>Purpose</th><th class="right">~Cost</th></tr></thead>
+      <tbody>
+        <tr><td>Acrylic plates ×2 (base + top) or a vented ABS box + top plate</td><td>The two tiers</td><td class="right">$15–25</td></tr>
+        <tr><td>Vented top cover / plate with slots</td><td>Covers the router but breathes; antennas poke through</td><td class="right">~$8</td></tr>
+        <tr><td>Vented chamber walls (slotted plastic, 4 sides)</td><td>Encloses the middle cooling section</td><td class="right">~$10</td></tr>
+        <tr><td>Standoff / spacer kit (~50–70mm posts)</td><td>The "legs" between tiers</td><td class="right">~$8</td></tr>
+        <tr><td>SMA panel-mount + extension cables ×3–4</td><td>Antennas on the base sides</td><td class="right">~$3 ea</td></tr>
+        <tr><td>Corner brackets / lip + small screws</td><td>Side walls that cradle the router</td><td class="right">~$6</td></tr>
+        <tr><td>5V fans ×2 (30–40mm)</td><td>Mounted in the middle cooling chamber</td><td class="right">~$12</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="wrap">
+    <p class="eyebrow">Software stack</p>
+    <h2>What runs where.</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Function</th><th>Software</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td>OS</td><td>Raspberry Pi OS Lite (64-bit)</td><td>Headless base.</td></tr>
+        <tr><td>Cellular</td><td>ModemManager + NetworkManager</td><td>Brings up the WAN link with your SIM's APN.</td></tr>
+        <tr><td>Routing</td><td><code>nftables</code> + kernel IP forwarding</td><td>NAT: shares one internet connection to all clients.</td></tr>
+        <tr><td>Addressing</td><td><code>dnsmasq</code></td><td>DHCP + DNS for the client network.</td></tr>
+        <tr><td>WiFi</td><td>External AP firmware (or <code>hostapd</code> for demo)</td><td>Serves the SSID to clients.</td></tr>
+        <tr><td>Metering</td><td><code>vnstat</code></td><td>Counts bytes in/out on the WAN interface.</td></tr>
+        <tr><td>Detection</td><td><code>spyder.py</code> (yours)</td><td>Monitor-mode attack detection.</td></tr>
+        <tr><td>Cloud</td><td>Python + Supabase RPC</td><td>Pushes threats + usage to your dashboards.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <p class="eyebrow">Build phases</p>
+    <h2>Build it one working layer at a time.</h2>
+    <p class="muted">Get each phase fully working before starting the next — that's how you stay sane when
+      something breaks. Test after every phase.</p>
+
+    <div class="phase">
+      <div class="h"><span class="num">0</span><h3>Prep the Pi</h3></div>
+      <div class="goal">Goal: a clean, updated, headless Pi.</div>
+      <ul>
+        <li>Flash <b>Raspberry Pi OS Lite (64-bit)</b>; enable SSH + set your WiFi/hostname in the imager.</li>
+        <li>First boot, then update:</li>
+      </ul>
+      <pre><code>sudo apt update &amp;&amp; sudo apt full-upgrade -y
+sudo apt install -y nftables dnsmasq vnstat network-manager python3-pip</code></pre>
+    </div>
+
+    <div class="phase">
+      <div class="h"><span class="num">1</span><h3>Internet in — the cellular WAN</h3><span class="pill warn">hardware-specific</span></div>
+      <div class="goal">Goal: the Pi itself gets online through the cellular modem.</div>
+      <ul>
+        <li>Plug in the modem. Detect it and note the interface name:</li>
+      </ul>
+      <pre><code>mmcli -L                 <span class="c"># list modems</span>
+nmcli device status      <span class="c"># find the WAN iface (wwan0 / usb0 / ppp0)</span></code></pre>
+      <ul>
+        <li>Bring up the connection with your SIM's APN (get the APN from your carrier):</li>
+      </ul>
+      <pre><code>sudo nmcli connection add type gsm ifname '*' con-name wan apn YOUR_APN
+sudo nmcli connection up wan
+ping -c3 1.1.1.1         <span class="c"># confirm the Pi is online</span></code></pre>
+      <div class="callout"><span class="t">Note</span><p>Exact steps vary by modem. A QMI/HAT modem may use <code>qmicli</code> instead; a plain USB dongle often "just works" via ModemManager. Confirm the Pi can ping the internet before moving on.</p></div>
+    </div>
+
+    <div class="phase">
+      <div class="h"><span class="num">2</span><h3>Share it — router + client network</h3></div>
+      <div class="goal">Goal: clients on the AP get internet through the Pi.</div>
+      <ul><li>Turn on IP forwarding:</li></ul>
+      <pre><code>echo 'net.ipv4.ip_forward=1' | sudo tee /etc/sysctl.d/99-router.conf
+sudo sysctl -p /etc/sysctl.d/99-router.conf</code></pre>
+      <ul><li>Give the LAN port (<code>eth0</code>) a fixed gateway address:</li></ul>
+      <pre><code>sudo nmcli connection add type ethernet ifname eth0 con-name lan \
+  ipv4.method manual ipv4.addresses 10.10.0.1/24
+sudo nmcli connection up lan</code></pre>
+      <ul><li>Hand out addresses with dnsmasq — edit <code>/etc/dnsmasq.conf</code>:</li></ul>
+      <pre><code>interface=eth0
+dhcp-range=10.10.0.50,10.10.0.200,255.255.255.0,12h
+dhcp-option=6,1.1.1.1,8.8.8.8</code></pre>
+      <ul><li>NAT so the LAN shares the WAN — <code>/etc/nftables.conf</code> (swap <code>wwan0</code> for your WAN iface):</li></ul>
+      <pre><code>table inet nat {
+  chain postrouting {
+    type nat hook postrouting priority 100;
+    oifname "wwan0" masquerade
+  }
+}
+table inet filter {
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+    iifname "eth0" oifname "wwan0" accept
+    iifname "wwan0" oifname "eth0" ct state established,related accept
+  }
+}</code></pre>
+      <pre><code>sudo systemctl enable --now nftables dnsmasq</code></pre>
+      <ul><li>Set your <b>access point to bridge/AP mode</b>, name the SSID (e.g. <em>Silicon Spyder Secure WiFi</em>), set a WPA2/3 password, and plug it into <code>eth0</code>. Connect a phone → you should have internet.</li></ul>
+      <div class="callout ok"><span class="t">Milestone</span><p>At the end of Phase 2 you have a working mobile hotspot. Everything after this is the "smart" layer.</p></div>
+    </div>
+
+    <div class="phase">
+      <div class="h"><span class="num">3</span><h3>Meter it — usage to the dashboard</h3></div>
+      <div class="goal">Goal: live "data used" numbers flowing to your dashboards.</div>
+      <ul><li>Point vnstat at the WAN interface (real internet usage):</li></ul>
+      <pre><code>sudo vnstat --add -i wwan0
+sudo systemctl enable --now vnstat
+vnstat --json d 1        <span class="c"># today's rx/tx in JSON</span></code></pre>
+      <ul><li>Add a <b>usage</b> table + ingest function to Supabase (same pattern as alerts):</li></ul>
+      <pre><code>create table if not exists public.usage_metrics (
+  id bigint generated always as identity primary key,
+  device_id text references public.devices(device_id),
+  rx_mb numeric, tx_mb numeric, total_mb numeric,
+  created_at timestamptz default now()
+);
+alter table public.usage_metrics enable row level security;
+
+create or replace function public.ingest_usage(
+  p_device_id text, p_device_key text, p_rx numeric, p_tx numeric
+) returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not exists (select 1 from devices d where d.device_id=p_device_id and d.device_key=p_device_key) then
+    raise exception 'invalid device credentials';
+  end if;
+  insert into usage_metrics(device_id,rx_mb,tx_mb,total_mb)
+    values (p_device_id,p_rx,p_tx,p_rx+p_tx);
+  update devices set last_seen=now() where device_id=p_device_id;
+end; $$;
+grant execute on function public.ingest_usage(text,text,numeric,numeric) to anon;</code></pre>
+      <ul><li>A tiny poller on the Pi reads vnstat and pushes every minute (<code>usage_push.py</code>):</li></ul>
+      <pre><code>import json, subprocess, time, urllib.request
+URL="https://micnxjnhxdxlqftzmazx.supabase.co/rest/v1/rpc/ingest_usage"
+KEY="sb_publishable_..."   <span class="c"># your anon key</span>
+DEV,DK="spyder-01","PASTE_YOUR_REAL_DEVICE_KEY_HERE"   <span class="c"># never commit the real key to git</span>
+while True:
+    d=json.loads(subprocess.check_output(["vnstat","--json","d","1"]))
+    day=d["interfaces"][0]["traffic"]["day"][-1]
+    rx=day["rx"]/1048576; tx=day["tx"]/1048576   <span class="c"># bytes -> MB</span>
+    body=json.dumps({"p_device_id":DEV,"p_device_key":DK,"p_rx":rx,"p_tx":tx}).encode()
+    req=urllib.request.Request(URL,body,{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"})
+    try: urllib.request.urlopen(req,timeout=10)
+    except Exception as e: print("push failed",e)
+    time.sleep(60)</code></pre>
+      <p class="muted">Then we add a <b>"Data used today"</b> tile to both dashboards — that part I can wire for you.</p>
+    </div>
+
+    <div class="phase">
+      <div class="h"><span class="num">4</span><h3>Protect it — run detection in parallel</h3></div>
+      <div class="goal">Goal: the Spyder engine you already built runs alongside, untouched.</div>
+      <ul>
+        <li>Put the USB adapter (<code>wlan1</code>) in monitor mode and run <code>spyder.py</code> as a service (you've done this).</li>
+        <li>Because the box now <em>is</em> the trusted network, treat your own SSID as known-good in the baseline so it never self-alerts.</li>
+        <li>Both services run at once: detection on <code>wlan1</code>, routing/metering on <code>eth0</code>/<code>wwan0</code> — they don't interfere.</li>
+      </ul>
+    </div>
+
+    <div class="phase">
+      <div class="h"><span class="num">5</span><h3>Make it portable &amp; resilient</h3><span class="pill">optional / advanced</span></div>
+      <div class="goal">Goal: runs on battery, survives the real world.</div>
+      <ul>
+        <li><b>Power:</b> size the battery for Pi + modem + AP together (measure the draw, add margin).</li>
+        <li><b>Heat:</b> active cooling — throttling under load causes mystery slowdowns.</li>
+        <li><b>Fail-open (advanced):</b> a bypass so if the Pi dies, the modem still reaches the AP and the event keeps internet. This removes the single-point-of-failure risk for a real product.</li>
+        <li><b>Auto-start everything</b> on boot via systemd; test a cold power-on with no keyboard/screen.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="risks">
+  <div class="wrap">
+    <p class="eyebrow">Risks &amp; gotchas</p>
+    <h2>Know these before you build.</h2>
+    <div class="callout crit"><span class="t">Single point of failure</span><p>The Pi is now in the traffic path — if it crashes, the event loses internet. Fine for a demo; for a paid product, add the Phase-5 fail-open bypass.</p></div>
+    <div class="callout warn"><span class="t">Data plan &amp; signal = the real ceiling</span><p>50 people streaming needs serious bandwidth and a strong cellular signal. This, not the electronics, is what usually makes or breaks an event. Test at (or near) the real venue.</p></div>
+    <div class="callout warn"><span class="t">Heat &amp; power</span><p>Routing + AP + detection together draw real power and generate heat. Undersized battery or no cooling = random failures. Measure both.</p></div>
+    <div class="callout"><span class="t">WiFi capacity is a real engineering limit</span><p>25–50 clients is genuinely demanding. Use proper AP hardware (this is why we don't use the Pi's own radio), plan channels, and load-test before you promise a number to a customer.</p></div>
+    <div class="callout"><span class="t">Be a good network citizen</span><p>You provide connectivity and meter <em>volume only</em> — don't inspect guests' traffic content. Consider a simple terms/acceptable-use notice. Keeps you clean legally and reputationally.</p></div>
+  </div>
+</section>
+
+<section id="test">
+  <div class="wrap">
+    <p class="eyebrow">Testing checklist</p>
+    <h2>Prove each layer before the event.</h2>
+    <ul>
+      <li>☐ Pi reaches the internet over cellular (<code>ping</code> passes).</li>
+      <li>☐ A phone on the AP gets an address and loads pages.</li>
+      <li>☐ <b>Load test:</b> connect as many devices as you can, stream video on several at once, watch for drops.</li>
+      <li>☐ Usage numbers appear on the dashboard and climb as you use data.</li>
+      <li>☐ Trigger a test attack (evil-twin) → it appears on both dashboards + alerts.</li>
+      <li>☐ Cold boot with no screen/keyboard → everything auto-starts.</li>
+      <li>☐ Run on battery for the full expected event duration.</li>
+      <li>☐ Range check: walk to the edges of the venue footprint.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="roadmap">
+  <div class="wrap">
+    <p class="eyebrow">Roadmap</p>
+    <h2>Suggested order.</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Stage</th><th>What</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Now</td><td>Security monitor + cloud + dashboards</td><td><span class="pill ok">done</span></td></tr>
+        <tr><td>Phase 1–2</td><td>Cellular WAN + router + AP (working hotspot)</td><td><span class="pill">next</span></td></tr>
+        <tr><td>Phase 3</td><td>Usage metering → dashboard tile</td><td><span class="pill">next</span></td></tr>
+        <tr><td>Phase 4</td><td>Detection running on the same box</td><td><span class="pill">integrate</span></td></tr>
+        <tr><td>Phase 5</td><td>Battery, cooling, fail-open, enclosure</td><td><span class="pill">polish</span></td></tr>
+        <tr><td>Later</td><td>Accounts, device pairing, per-event reports</td><td><span class="pill">product</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout ok"><span class="t">My recommendation</span><p>Do it in this exact order and <strong>demo after Phase 2</strong> — a working "plug-in secure hotspot" is already an impressive prototype. Add metering and detection as the differentiators that make it more than just internet-in-a-box.</p></div>
+  </div>
+</section>
+</main>
+
+<footer>Silicon Spyder · Secure WiFi Box Build Guide · a working reference, build one phase at a time</footer>
+
+</body>
+</html>
