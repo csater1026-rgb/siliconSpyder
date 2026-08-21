@@ -1,8 +1,14 @@
 // ============================================================================
 // Silicon Spyder — Secure WiFi Box Enclosure
-// Parametric 3-tier case: base (electronics) / chamber (cooling) / tray+cover
-// (router). Non-metal only — this is meant to be 3D-printed (PETG or ABS
-// recommended over PLA for the heat near the router/fans). Metal blocks WiFi.
+// Parametric 3-part case, one part per physical layer:
+//   BASE    (bottom)  — everything except the fans and the router: Pi4,
+//                       SIM7600G-H HAT, Alfa/MT7921 monitor adapter.
+//   CHAMBER (middle)  — the 2x cooling fans.
+//   TOP     (top)     — the TP-Link router, in a single liftable piece
+//                       (cradle walls + vented lid combined, so there's one
+//                       part to lift off, not two).
+// Non-metal only — this is meant to be 3D-printed (PETG or ABS recommended
+// over PLA for the heat near the router/fans). Metal blocks WiFi.
 //
 // HOW TO USE: set `part` below to the piece you want, then render (F6) and
 // export as STL (F7 in the OpenSCAD GUI, or see the command-line examples
@@ -11,7 +17,7 @@
 // Units: mm throughout.
 // ============================================================================
 
-part = "all"; // "base" | "chamber" | "tray" | "cover" | "all" (all = assembly preview only, do not print "all")
+part = "all"; // "base" | "chamber" | "top" | "all" (all = assembly preview only, do not print "all")
 
 /* [Router — TP-Link Archer AX21 (AX1800)] */
 router_w = 261;   // long axis
@@ -36,18 +42,19 @@ footprint_d = router_d + 2*side_void;    // = 180mm, matches the brief's target 
 wall_t  = 3;     // wall thickness (2-3 perimeters on most FDM printers)
 floor_t = 3;
 
-/* [Corner posts — one M3 screw runs through all 4 tiers into a captured nut in the base] */
+/* [Corner posts — one M3 screw runs through all 3 parts into a captured nut in the base] */
 post_d      = 9;      // corner post outer diameter
-screw_d     = 3.4;    // M3 clearance hole (through cover/tray/chamber/base)
+screw_d     = 3.4;    // M3 clearance hole (through top + chamber + base)
 post_inset  = 8;       // post center inset from each footprint edge
 m3_nut_af   = 5.6;     // M3 hex nut across-flats, +clearance
 m3_nut_h    = 2.8;     // M3 hex nut thickness, +clearance
 
-/* [Tier heights] */
-base_h    = 45;              // electronics tier: clears Pi4 + SIM7600G-H HAT stack + antenna connectors
-chamber_h = 30;               // cooling tier
-tray_h    = router_h + 4;     // router tier: snug over the router's 39mm height
-cover_t   = 3;
+/* [Layer heights] */
+base_h       = 45;              // bottom: clears Pi4 + SIM7600G-H HAT stack + antenna connectors
+chamber_h    = 30;               // middle: fans
+top_wall_h   = router_h + 4;     // top: cradle walls, snug over the router's 39mm height
+top_lid_t    = 3;                // top: lid thickness, on top of the cradle walls
+top_h        = top_wall_h + top_lid_t;
 
 /* [Venting] */
 vent_w        = 4;     // slot width
@@ -61,6 +68,8 @@ fan_count        = 2;
 fan_screw_d      = 3.2;
 
 /* [Raspberry Pi 4 — real board 85x56mm, M2.5 holes on a 58x49mm pattern] */
+// (The Pi4's own WiFi/Bluetooth antenna is an onboard PCB trace with no
+// external connector, so it needs no panel-mount hole — just non-metal walls.)
 pi_w             = 85;
 pi_d             = 56;
 pi_hole_dx       = 58;
@@ -70,11 +79,51 @@ pi_standoff_d    = 6;
 pi_standoff_h    = 8;      // clears the underside of the board + any bottom components
 pi_mount_hole_d  = 2.6;    // self-taps for M2.5
 
-/* [Antenna panel mounts — SMA, on the base's short end walls] */
-// Cellular + GNSS (SIM7600G-H) on one end, the Alfa/MT7921 monitor adapter's
-// antenna on the other. Adjust sma_positions below once you've test-fit the
-// real cable ends.
+/* [Antenna panel mounts — base's short end walls] */
+// Full antenna audit across every powered part in the system:
+//   Raspberry Pi 4 ................ 0 (onboard PCB antenna, no external connector)
+//   SIM7600G-H 4G HAT ............. 2 ship in the box: LTE MAIN + GPS/GNSS.
+//                                    The board also has a 3rd, unpopulated
+//                                    AUX/diversity pad — a labeled spare hole
+//                                    is included below in case you add one.
+//   Alfa/MT7921 monitor adapter ... 2 (confirmed against the actual hardware)
+//   TP-Link Archer AX21 ........... 4, fixed to the router body (not
+//                                    removable/upgradable, not fold-flat —
+//                                    handled in TOP below, not here)
+//   YEREADW power meter ........... 0
+//   ALLWEI power station ........... 0
+// So the base needs 5 real SMA bulkhead holes (4 active + 1 labeled spare).
 sma_hole_d = 6.5;
+
+// Left end wall (x=0): SIM7600G-H HAT
+hat_sma_positions = [
+  [footprint_d * 0.24, base_h * 0.62],  // LTE MAIN
+  [footprint_d * 0.50, base_h * 0.62],  // GPS / GNSS
+  [footprint_d * 0.76, base_h * 0.62],  // spare — HAT's AUX/diversity pad (unpopulated by default)
+];
+
+// Right end wall (x=footprint_w): Alfa/MT7921 monitor adapter
+alfa_sma_positions = [
+  [footprint_d * 0.35, base_h * 0.62],
+  [footprint_d * 0.65, base_h * 0.62],
+];
+
+/* [Router antenna clearance — TOP only] */
+// The AX21's 4 antennas are fixed to the router body and rise from its REAR
+// edge; they tilt for angle but don't fold flat. So the lid can't have plain
+// closed holes there (you'd have to unscrew the antennas to ever lift the
+// lid). Instead each antenna gets a slot that's open at the lid's rear edge:
+// lifting the lid, then sliding it back slightly, clears the antennas
+// without touching them. Positions are evenly-spaced placeholders — nudge
+// antenna_xs to match your AX21's real antenna spacing once it's in hand.
+antenna_slot_w = 16;   // wide enough for a screw-mount antenna's hinge base, not just its shaft
+antenna_xs = [
+  footprint_w * 0.20, footprint_w * 0.38,
+  footprint_w * 0.62, footprint_w * 0.80,
+];
+// y where the router's rear edge (and so its antennas) sits, assuming the
+// router is loaded with its antenna edge toward the footprint_d-max side
+antenna_row_y = side_void + router_d;
 
 $fn = 48;
 
@@ -129,10 +178,10 @@ module shell(w, d, h, floor = true) {
 }
 
 // ============================================================================
-// BASE — electronics tier (Pi4 + SIM7600G-H HAT + Alfa adapter)
-// Closed, vented box. SMA panel mounts on the short (footprint_d-facing) end
-// walls. Nut traps at the 4 corner posts capture the single M3 assembly screw
-// that runs up through chamber + tray + cover.
+// BASE (bottom) — everything except the fans and the router: Pi4,
+// SIM7600G-H HAT, Alfa/MT7921 monitor adapter. Closed, vented box. Nut traps
+// at the 4 corner posts capture the single M3 assembly screw that runs up
+// through chamber + top.
 // ============================================================================
 module base() {
   difference() {
@@ -147,15 +196,13 @@ module base() {
     translate([0, footprint_d - wall_t, 0])
       vent_field(footprint_w, base_h * 0.5, 10, z0 = floor_t + 4);
 
-    // SMA panel-mount holes on the two short end walls (cellular/GNSS one
-    // side, Alfa monitor-adapter antenna the other). Two holes per end,
-    // centered vertically, spread across the wall — nudge sma_hole_d /
-    // positions once you've test-fit your actual pigtails.
-    for (yz = [[footprint_d*0.35, base_h*0.55], [footprint_d*0.65, base_h*0.55]])
+    // SMA panel-mount holes — see the antenna audit above. HAT on the left
+    // end wall, Alfa adapter on the right end wall.
+    for (yz = hat_sma_positions)
       translate([-1, yz[0], yz[1]])
         rotate([0, 90, 0])
           cylinder(d = sma_hole_d, h = wall_t + 2);
-    for (yz = [[footprint_d*0.35, base_h*0.55], [footprint_d*0.65, base_h*0.55]])
+    for (yz = alfa_sma_positions)
       translate([footprint_w - wall_t - 1, yz[0], yz[1]])
         rotate([0, 90, 0])
           cylinder(d = sma_hole_d, h = wall_t + 2);
@@ -177,16 +224,17 @@ module base() {
 }
 
 // ============================================================================
-// CHAMBER — cooling tier
-// Fully enclosed except vents on both long walls; 2x 40mm fans mounted in the
-// floor, blowing upward (pulling intake air from the base below and the side
-// vents, exhausting up through the open-floor tray and out the vented cover).
-// Top and bottom are open — the corner posts + adjoining tiers close the box.
+// CHAMBER (middle) — the 2x cooling fans.
+// Fully enclosed except vents on both long walls; fans mounted in a solid
+// floor shelf, blowing upward (pulling intake air from the base below and
+// the side vents, exhausting up through the open-bottom top piece and out
+// its vented lid). Top and bottom of the side walls are open — the corner
+// posts + adjoining parts close the box.
 // ============================================================================
 module chamber() {
   difference() {
     union() {
-      // side walls only (no floor/ceiling plate — open top & bottom)
+      // side walls only (no ceiling plate — open top)
       difference() {
         cube([footprint_w, footprint_d, chamber_h]);
         translate([wall_t, wall_t, -1])
@@ -221,71 +269,63 @@ module chamber_fan_cuts() {
 }
 
 // ============================================================================
-// TRAY — router tier
-// Side walls cradle the router snugly on its long sides; open floor (so the
-// chamber's fan airflow reaches the router's underside) and open top (closed
-// separately by the vented cover). Front/back voids beside the router are the
-// cable chase + carry-handle cutouts.
+// TOP — the TP-Link router, as one liftable piece (cradle walls + vented lid
+// combined). Drops down over the router from above (open bottom, so it slides
+// over the router sitting on the chamber below); lifts straight back off the
+// same way. Cradle walls hug the router's long sides; open floor lets the
+// chamber's fan airflow reach the router's underside; front/back voids are
+// the cable chase + carry-handle cutouts. The lid vents (heat escapes
+// upward) and has the 4 rear-opening antenna slots described above.
+//
+// REMOVAL: because the AX21's antennas are fixed and don't fold flat, lift
+// this piece up and slide it slightly toward the antenna edge (footprint_d
+// max) as you go, so the open ends of the antenna slots clear the antenna
+// bases. No unscrewing required.
 // ============================================================================
-module tray() {
+module top() {
   handle_w = 70;
   handle_h = 14;
 
   difference() {
     union() {
-      // cradle walls on the long sides only (no front/back walls — those are
-      // the open cable-chase/handle voids)
-      translate([0, 0, 0]) cube([cradle_wall, footprint_d, tray_h]);
-      translate([footprint_w - cradle_wall, 0, 0]) cube([cradle_wall, footprint_d, tray_h]);
-      all_corner_posts(tray_h);
+      // cradle walls on the router's long sides
+      translate([0, 0, 0]) cube([cradle_wall, footprint_d, top_wall_h]);
+      translate([footprint_w - cradle_wall, 0, 0]) cube([cradle_wall, footprint_d, top_wall_h]);
 
-      // thin front/back lips just enough to carry the corner posts, leaving
-      // the rest of the void open for cables + hands
-      translate([0, 0, 0]) cube([footprint_w, wall_t, tray_h]);
-      translate([0, footprint_d - wall_t, 0]) cube([footprint_w, wall_t, tray_h]);
+      // thin front/back lips — just enough to carry the corner posts and
+      // close the gap, leaving most of each void open for cables + hands
+      translate([0, 0, 0]) cube([footprint_w, wall_t, top_wall_h]);
+      translate([0, footprint_d - wall_t, 0]) cube([footprint_w, wall_t, top_wall_h]);
+
+      all_corner_posts(top_h);
+
+      // lid, on top of the cradle walls
+      translate([0, 0, top_wall_h]) cube([footprint_w, footprint_d, top_lid_t]);
     }
 
-    // carry-handle cutouts, centered in each void
-    translate([footprint_w/2 - handle_w/2, -1, tray_h/2 - handle_h/2])
+    // carry-handle cutouts, centered in each void, through the thin lip
+    translate([footprint_w/2 - handle_w/2, -1, top_wall_h/2 - handle_h/2])
       cube([handle_w, side_void + wall_t + 2, handle_h]);
-    translate([footprint_w/2 - handle_w/2, footprint_d - side_void - wall_t - 1, tray_h/2 - handle_h/2])
+    translate([footprint_w/2 - handle_w/2, footprint_d - side_void - wall_t - 1, top_wall_h/2 - handle_h/2])
       cube([handle_w, side_void + wall_t + 2, handle_h]);
-  }
-}
 
-// ============================================================================
-// COVER — vented top
-// Flat plate over the router tier: vent slots (not sealed) so heat escapes
-// upward, plus 4 antenna pass-through holes. Screws down onto the same 4
-// corner posts as everything else. Antenna positions are evenly spaced
-// placeholders — nudge them to match your AX21's real antenna spacing once
-// you have it in hand.
-// ============================================================================
-module cover() {
-  antenna_hole_d = 9;
-  antenna_y = footprint_d / 2;
-  antenna_xs = [
-    footprint_w * 0.20, footprint_w * 0.38,
-    footprint_w * 0.62, footprint_w * 0.80,
-  ];
+    // lid vent slots, two rows over the router body (kept clear of the
+    // antenna slot zone near the rear edge)
+    for (yfrac = [0.28, 0.55])
+      translate([0, footprint_d * yfrac - vent_w/2, top_wall_h - 0.5])
+        for (i = [0:14])
+          translate([footprint_w*0.08 + i*(footprint_w*0.84/15), 0, 0])
+            cube([footprint_w*0.84/15*0.5, vent_w, top_lid_t + 1]);
 
-  difference() {
-    cube([footprint_w, footprint_d, cover_t]);
-
-    // vent slots, two rows (front half / back half of the router), skipping
-    // a center band so antenna holes have solid material around them
-    for (yfrac = [0.28, 0.72])
-      translate([0, footprint_d * yfrac - vent_w/2, -0.5])
-        rotate([0, 0, 0])
-          for (i = [0:14])
-            translate([footprint_w*0.08 + i*(footprint_w*0.84/15), 0, 0])
-              cube([footprint_w*0.84/15*0.5, vent_w, cover_t + 1]);
-
+    // antenna slots — closed a few mm short of the router's rear edge, open
+    // all the way through to the lid's rear edge
     for (ax = antenna_xs)
-      translate([ax, antenna_y, -0.5]) cylinder(d = antenna_hole_d, h = cover_t + 1);
+      translate([ax - antenna_slot_w/2, antenna_row_y - 4, top_wall_h - 0.5])
+        cube([antenna_slot_w, footprint_d - (antenna_row_y - 4), top_lid_t + 1]);
 
+    // corner screw holes through the lid
     for (p = corner_positions())
-      translate([p[0], p[1], -0.5]) cylinder(d = screw_d, h = cover_t + 1);
+      translate([p[0], p[1], top_wall_h - 0.5]) cylinder(d = screw_d, h = top_lid_t + 1);
   }
 }
 
@@ -298,8 +338,7 @@ module assembly_preview() {
     color("LightSlateGray") chamber();
     chamber_fan_cuts();
   }
-  translate([0, 0, base_h + chamber_h]) color("RoyalBlue") tray();
-  translate([0, 0, base_h + chamber_h + tray_h]) color("DeepSkyBlue") cover();
+  translate([0, 0, base_h + chamber_h]) color("RoyalBlue") top();
 }
 
 // ============================================================================
@@ -307,14 +346,12 @@ module assembly_preview() {
 // ============================================================================
 if (part == "base") base();
 else if (part == "chamber") difference() { chamber(); chamber_fan_cuts(); }
-else if (part == "tray") tray();
-else if (part == "cover") cover();
+else if (part == "top") top();
 else assembly_preview();
 
 // ----------------------------------------------------------------------------
 // Command-line export examples (from this directory):
 //   openscad -D 'part="base"'    -o base.stl    silicon-spyder-enclosure.scad
 //   openscad -D 'part="chamber"' -o chamber.stl silicon-spyder-enclosure.scad
-//   openscad -D 'part="tray"'    -o tray.stl    silicon-spyder-enclosure.scad
-//   openscad -D 'part="cover"'   -o cover.stl   silicon-spyder-enclosure.scad
+//   openscad -D 'part="top"'     -o top.stl      silicon-spyder-enclosure.scad
 // ----------------------------------------------------------------------------
