@@ -148,6 +148,72 @@ footer{padding:30px 0 56px;color:var(--ink-faint);font-size:13px;text-align:cent
   <div class="wrap">
     <p class="eyebrow">Step 1</p>
     <h2>Mount the HAT on the GPIO header</h2>
+    <p>First, get oriented — here's the Pi 4 from above, with every port labeled. Only two things on this board matter for this step: the GPIO header on top, and one free USB-A port on the right.</p>
+
+    <figure>
+      <svg viewBox="0 0 700 430" role="img" aria-label="Overhead view of a Raspberry Pi 4: the 40-pin GPIO header runs along the top edge with pin 1 at the left end; the bottom edge has the USB-C power port, two micro-HDMI ports, and an audio jack; the right edge has, from top to bottom, the Ethernet port, two USB 3.0 ports, and two USB 2.0 ports. One USB 2.0 port already holds the Alfa adapter; the other is where the HAT's USB cable connects.">
+        <line x1="270" y1="26" x2="270" y2="63" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3"/>
+        <text x="270" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">GPIO header — 4G HAT mounts here</text>
+
+        <rect x="170" y="70" width="320" height="220" rx="10" fill="none" stroke="currentColor" stroke-width="1.8"/>
+
+        <!-- GPIO header, top edge, pin 1 at the left end -->
+        <g>
+          <rect x="189" y="64" width="13" height="12" fill="var(--accent)"/>
+          <g fill="currentColor" opacity=".5">
+            <rect x="206" y="64" width="10" height="12"/><rect x="220" y="64" width="10" height="12"/><rect x="234" y="64" width="10" height="12"/>
+            <rect x="248" y="64" width="10" height="12"/><rect x="262" y="64" width="10" height="12"/><rect x="276" y="64" width="10" height="12"/>
+            <rect x="290" y="64" width="10" height="12"/><rect x="304" y="64" width="10" height="12"/><rect x="318" y="64" width="10" height="12"/>
+            <rect x="332" y="64" width="10" height="12"/><rect x="346" y="64" width="10" height="12"/>
+          </g>
+          <text x="195" y="58" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--accent)">PIN 1</text>
+        </g>
+
+        <!-- bottom edge: power / HDMI / audio -->
+        <g opacity=".6">
+          <rect x="205" y="290" width="26" height="13" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="255" y="290" width="18" height="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="279" y="290" width="18" height="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <circle cx="345" cy="296" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </g>
+        <text x="218" y="322" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">Power</text>
+        <text x="218" y="334" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">(USB-C)</text>
+        <text x="266" y="322" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">Micro-HDMI</text>
+        <text x="266" y="334" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">&times;2</text>
+        <text x="345" y="322" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">Audio /</text>
+        <text x="345" y="334" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">video</text>
+
+        <!-- right edge: ethernet, USB 3.0 x2, USB 2.0 x2 -->
+        <g opacity=".6">
+          <rect x="490" y="98" width="15" height="26" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </g>
+        <text x="514" y="115" font-size="11" fill="currentColor" opacity=".7">Ethernet</text>
+
+        <g opacity=".6">
+          <rect x="490" y="146" width="15" height="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="490" y="163" width="15" height="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </g>
+        <text x="514" y="158" font-size="11" fill="currentColor" opacity=".7">USB 3.0 &times;2</text>
+
+        <rect x="490" y="204" width="15" height="14" fill="currentColor" opacity=".35"/>
+        <text x="514" y="207" font-size="11" fill="currentColor" opacity=".7">USB 2.0</text>
+        <text x="514" y="219" font-size="9.5" fill="currentColor" opacity=".55">Alfa adapter (already in)</text>
+
+        <rect x="490" y="246" width="15" height="14" fill="none" stroke="var(--accent)" stroke-width="2.2"/>
+        <path d="M537 253 h-15" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3"/>
+        <path d="M514 253 l8 -4 v8 Z" fill="var(--accent)"/>
+        <text x="542" y="250" font-size="11" font-weight="700" fill="var(--accent)">USB 2.0</text>
+        <text x="542" y="262" font-size="9.5" font-weight="600" fill="var(--accent)">HAT cable goes here</text>
+
+        <!-- microSD note -->
+        <rect x="176" y="296" width="20" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2.5" opacity=".5"/>
+        <text x="140" y="300" text-anchor="end" font-size="9.5" fill="currentColor" opacity=".55">microSD —</text>
+        <text x="140" y="312" text-anchor="end" font-size="9.5" fill="currentColor" opacity=".55">underside</text>
+      </svg>
+      <figcaption>The board from above: GPIO header along the top (pin 1 at the left end), power/video ports along the bottom, USB + Ethernet along the right. The Alfa adapter is already using one USB 2.0 port — the HAT's cable goes in the other one.</figcaption>
+    </figure>
+
+    <p>Now the mounting mechanics themselves:</p>
 
     <figure>
       <svg viewBox="0 0 560 280" role="img" aria-label="The HAT board sits above the Raspberry Pi with its pin-1 marker aligned over the Pi's pin-1 marker, ready to be pressed straight down onto the 40-pin GPIO header">
